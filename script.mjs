@@ -47,6 +47,11 @@ async function unzipAndCreatePdf(zipFilePath) {
   const output =
     path.basename(zipFilePath, ".zip") + "_" + formattedDate + ".pdf";
   await createPdf(images, output);
+
+  // Delete the extracted images
+  for (let i = 0; i < images.length; i++) {
+    fs.unlinkSync(images[i]);
+  }
 }
 
 await unzipAndCreatePdf(process.argv[3]);
