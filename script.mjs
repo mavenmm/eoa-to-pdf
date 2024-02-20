@@ -86,11 +86,11 @@ const formattedDate = `${date.getFullYear()}-${String(
 let firstPart = firstFilename.split("_")[0].toUpperCase();
 
 // Check if the last two characters are -E or -F and remove them
-if (["-E", "-F"].includes(firstPart.slice(-2))) {
+if (/(-E|-F)$/.test(firstPart)) {
   firstPart = firstPart.slice(0, -2);
 }
 // Check if the last character is E or F and remove it
-else if (["E", "F"].includes(firstPart.slice(-1))) {
+else if (/[EF]$/.test(firstPart)) {
   firstPart = firstPart.slice(0, -1);
 }
 
