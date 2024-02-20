@@ -82,9 +82,19 @@ const formattedDate = `${date.getFullYear()}-${String(
   date.getMonth() + 1
 ).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 
-// get the first 9 characters of the first filename and append the date
-let output =
-  firstFilename.substring(0, 9).toUpperCase() + "_" + formattedDate + ".pdf";
+// Extract the original name based on EOA export
+let firstPart = firstFilename.split("_")[0].toUpperCase();
+
+// Check if the last two characters are -E or -F and remove them
+if (["-E", "-F"].includes(firstPart.slice(-2))) {
+  firstPart = firstPart.slice(0, -2);
+}
+// Check if the last character is E or F and remove it
+else if (["E", "F"].includes(firstPart.slice(-1))) {
+  firstPart = firstPart.slice(0, -1);
+}
+
+let output = firstPart + "_" + formattedDate + ".pdf";
 
 await createPdf(images, output);
 
