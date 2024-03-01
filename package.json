@@ -2,9 +2,12 @@
   "dependencies": {
     "adm-zip": "^0.5.10",
     "image-size": "^1.1.1",
-    "pdfkit": "^0.14.0"
+    "pdfkit": "^0.14.0",
+    "yargs": "^17.7.2"
   },
   "scripts": {
-    "start": "node script.mjs"
+    "start": "node script.mjs",
+    "eoa": "node script.mjs",
+    "litmus": "node script.mjs --type=litmus"
   }
 }

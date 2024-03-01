@@ -1,59 +1,20 @@
 #!/usr/bin/env zx
-import PDFDocument from "pdfkit";
+import yargs from "yargs";
+import { hideBin } from "yargs/helpers";
 import fs from "fs";
-import AdmZip from "adm-zip";
 import path from "path";
-import sizeOf from "image-size";
-import crypto from "crypto";
+import { createPdf } from "./src/pdfCreator.mjs";
+import { unzipAndCollectImages } from "./src/zipHandler.mjs";
 
-async function createPdf(images, output) {
-  const pdfDoc = new PDFDocument({ autoFirstPage: false });
-  const writeStream = fs.createWriteStream(output);
-  pdfDoc.pipe(writeStream);
+// Parse command line arguments
+const argv = yargs(hideBin(process.argv)).option("type", {
+  alias: "t",
+  type: "string",
+  description: "Set process type",
+}).argv;
 
-  for (let i = 0; i < images.length; i++) {
-    const imgSize = sizeOf(images[i]);
-    pdfDoc.addPage({ size: [imgSize.width, imgSize.height] });
-    pdfDoc.image(images[i], 0, 0, {
-      width: imgSize.width,
-      height: imgSize.height,
-    });
-  }
-
-  pdfDoc.end();
-  return new Promise((resolve) => {
-    writeStream.on("finish", resolve);
-  });
-}
-
-async function unzipAndCollectImages(zipFilePath, images) {
-  const zip = new AdmZip(zipFilePath);
-  const zipEntries = zip.getEntries();
-
-  zip.extractAllTo(/*target path*/ "./", /*overwrite*/ true);
-
-  for (let i = 0; i < zipEntries.length; i++) {
-    const entry = zipEntries[i];
-    console.log(entry.entryName);
-    if (entry.entryName.endsWith(".png") || entry.entryName.endsWith(".jpg")) {
-      // Generate a hash for the current time
-      const timestamp = Date.now();
-      const hash = crypto
-        .createHash("md5")
-        .update(String(timestamp))
-        .digest("hex");
-
-      // Construct new filename with hash
-      const ext = path.extname(entry.entryName);
-      const name = path.basename(entry.entryName, ext);
-      const newFilename = `${name}_${hash}${ext}`;
-
-      // Rename the file with the new name
-      await fs.promises.rename("./" + entry.entryName, "./" + newFilename);
-      images.push("./" + newFilename);
-    }
-  }
-}
+// Get process type from command line arguments
+const processType = argv.type || "eoa";
 
 // specify the directory you want to scan for zip files
 const sourceDir = "./source";
@@ -62,16 +23,18 @@ const sourceDir = "./source";
 let images = [];
 
 // go through each file in the source directory
-let firstFilename = null;
+let outputName = "Combined";
+
+// do this only if process type is 'eoa'
 for (const filename of fs.readdirSync(sourceDir)) {
   if (filename.endsWith(".zip")) {
     // construct full file path
     const filepath = path.join(sourceDir, filename);
-    await unzipAndCollectImages(filepath, images);
+    await unzipAndCollectImages(filepath, images, processType);
 
-    // store the first filename
-    if (!firstFilename) {
-      firstFilename = filename;
+    if (processType === "eoa") {
+      // EOA only: store the first filename
+      outputName = filename;
     }
   }
 }
@@ -83,16 +46,7 @@ const formattedDate = `${date.getFullYear()}-${String(
 ).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 
 // Extract the original name based on EOA export
-let firstPart = firstFilename.split("_")[0].toUpperCase();
-
-// Check if the last two characters are -E or -F and remove them
-if (/(-E|-F)$/.test(firstPart)) {
-  firstPart = firstPart.slice(0, -2);
-}
-// Check if the last character is E or F and remove it
-else if (/[EF]$/.test(firstPart)) {
-  firstPart = firstPart.slice(0, -1);
-}
+let firstPart = outputName.split("_")[0].toUpperCase();
 
 let output = firstPart + "_" + formattedDate + ".pdf";
 
